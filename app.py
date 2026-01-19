@@ -10,7 +10,7 @@ from fpdf import FPDF
 RVCE_LAT = 12.9240
 RVCE_LON = 77.4990
 APP_NAME = "Namma Report"
-ADMIN_MOBILE = "7737684344"  # <--- THE ONLY NUMBER THAT SEES THE ADMIN BUTTON
+ADMIN_MOBILE = "7737684344"
 
 # --- PAGE SETUP ---
 st.set_page_config(page_title=APP_NAME, layout="wide", page_icon="🇮🇳")
@@ -70,8 +70,18 @@ def analyze_image_simulation(image_file):
     elif "pipe" in name: return "Potable Water Main Rupture", "High", "Significant treated water loss; risk of erosion."
     else: return "Civic Anomaly Detected", "Low", "Non-critical issue; flagged for manual review."
 
-# --- NAVIGATION LOGIC (THE MAGIC PART) ---
-st.sidebar.image("https://img.icons8.com/fluency/96/bruj-khalifa.png", width=50)
+# --- NAVIGATION LOGIC (UPDATED LOGO SECTION) ---
+# 1. Add the "Developed by" text
+st.sidebar.markdown("**Developed by Students of:**")
+
+# 2. Add the Official RVCE Logo
+try:
+    st.sidebar.image("https://rvce.edu.in/wp-content/uploads/2025/08/Logo-2.png", width=200)
+except:
+    # Fallback if internet is blocked
+    st.sidebar.error("Logo failed to load (Check Internet)")
+
+st.sidebar.divider()
 st.sidebar.title(APP_NAME)
 
 # Default Page is Citizen
@@ -82,7 +92,6 @@ if st.session_state.otp_verified and st.session_state.user_mobile == ADMIN_MOBIL
     st.sidebar.success("⚡ Administrator Access Granted")
     page = st.sidebar.radio("Navigate", ["📱 Citizen Reporting", "🚔 Admin Dashboard"])
 else:
-    # Regular users don't see any radio button, just the text
     st.sidebar.markdown("**Citizen Portal**")
 
 st.sidebar.divider()
@@ -100,7 +109,7 @@ if page == "📱 Citizen Reporting":
             
             if st.button("Request OTP"):
                 if len(phone)==10:
-                    st.session_state.user_mobile = phone  # Save number to check later
+                    st.session_state.user_mobile = phone
                     st.session_state.otp_sent = True
                     st.session_state.current_otp = random.randint(1000, 9999)
                     with st.spinner("Connecting to SMS Gateway..."): time.sleep(1)
@@ -120,7 +129,6 @@ if page == "📱 Citizen Reporting":
     else:
         st.success(f"✅ Verified User: +91-{st.session_state.user_mobile}")
         
-        # Show special message for Admin
         if st.session_state.user_mobile == ADMIN_MOBILE:
             st.info("🔓 Admin privileges detected. Check the Sidebar to switch views.")
             
@@ -155,7 +163,6 @@ if page == "📱 Citizen Reporting":
 
 # ================= VIEW 2: ADMIN DASHBOARD (RESTRICTED) =================
 elif page == "🚔 Admin Dashboard":
-    # Double Check Security (In case someone tries to hack the variable)
     if st.session_state.user_mobile != ADMIN_MOBILE:
         st.error("⛔ Unauthorized Access")
         st.stop()
@@ -166,7 +173,6 @@ elif page == "🚔 Admin Dashboard":
     if st.session_state.reports:
         df = pd.DataFrame(st.session_state.reports)
         
-        # Action Panel
         c1, c2, c3 = st.columns([2, 1, 1])
         with c1:
             t_id = st.selectbox("Select Ticket to Manage", df['id'].tolist())
@@ -185,14 +191,12 @@ elif page == "🚔 Admin Dashboard":
                 pdf_data = create_pdf(selected_ticket)
                 st.download_button("⬇️ PDF Report", pdf_data, f"{t_id}.pdf", "application/pdf")
 
-        # Data Table
         def color_row(row):
             return ['background-color: #ffcccb; color: black' if row['priority'] == 'High' else '' for _ in row]
         
         st.subheader("📋 Active Tickets")
         st.dataframe(df.style.apply(color_row, axis=1), use_container_width=True)
         
-        # Visuals
         c1, c2 = st.columns(2)
         c1.map(df, zoom=15, color="#ff0000")
         c2.line_chart(pd.DataFrame(np.random.randint(60, 150, size=(20, 1)), columns=['AQI']))
